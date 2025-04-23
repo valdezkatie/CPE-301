@@ -42,9 +42,20 @@ void waterlevel(){
 } 
 
 
+void tempandhumidity(){
+  Serial.println();
 
+ int chk = DHT11.read(DHT11PIN);
 
+ Serial.print("Humidity (%): ");
+ Serial.println((float)DHT11.humidity, 2);
 
+  Serial.print("Temperature  (C): ");
+  Serial.println((float)DHT11.temperature, 2);
+
+  delay(2000);
+
+}
 
 void U0init(int U0baud)
 {
