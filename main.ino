@@ -96,3 +96,50 @@ void fan_temp(float TempF){
   }
   
 }
+
+void adc_init() //write your code after each commented line and follow the instruction 
+{
+  // setup the A register
+ // set bit   7 to 1 to enable the ADC
+  *my_ADCSRA |= 0b10000000;
+ // clear bit 6 to 0 to disable the ADC trigger mode
+  *my_ADCSRA &= 0b10111111;
+ // clear bit 5 to 0 to disable the ADC interrupt
+  *my_ADCSRA &= 0b11011111;
+ // clear bit 0-2 to 0 to set prescaler selection to slow reading
+  *my_ADCSRB &= 0b11111000;
+  // setup the B register
+// clear bit 3 to 0 to reset the channel and gain bits
+  *my_ADCSRB &= 0b11110111;
+ // clear bit 2-0 to 0 to set free running mode
+  *my_ADCSRB &= 0b11111000;
+  // setup the MUX Register
+ // clear bit 7 to 0 for AVCC analog reference
+  *my_ADMUX &= 0b01111111;
+// set bit 6 to 1 for AVCC analog reference
+  *my_ADMUX |= 0b01000000;
+  // clear bit 5 to 0 for right adjust result
+  *my_ADMUX &= 0b11011111;
+ // clear bit 4-0 to 0 to reset the channel and gain bits
+  *my_ADMUX &= 0b11100000;
+
+}
+
+unsigned int adc_read(unsigned char adc_channel_num) //work with channel 0
+{
+ 
+  *my_ADMUX &= 0b11100000;
+
+  
+  *my_ADCSRB &= 0b11110111;
+ 
+  // set the channel selection bits for channel 0
+ 
+
+  
+  *my_ADCSRA |= 0x40;
+  
+  while((*my_ADCSRA & 0x40) != 0);
+  
+  
+}
