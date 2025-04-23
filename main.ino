@@ -81,3 +81,18 @@ void U0putchar(unsigned char U0pdata)
   while((*myUCSR0A & TBE)==0);
   *myUDR0 = U0pdata;
 }
+
+//fan 
+const uint8_t TEMPHHIGH = 80; 
+const uint8_t  TEMPLOW = 75;
+
+void fan_temp(float TempF){
+  static bool fanON
+  if(!fanON && TempF >= TEMPHIGH){
+    
+  }
+  else if(fanON && TempF <= TEMPLOW){
+    
+  }
+  
+}
