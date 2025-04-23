@@ -29,3 +29,14 @@ volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
 
+void waterlevel(){
+  if(water_level>=100){
+    lcd.setCursor(0, 1);
+    lcd.print("High");
+    noTone(buzzer);
+}
+  else if(water_level>=50){
+    lcd.setCursor(0, 1);
+    lcd.print("Water level is too low");
+    tone(buzzer, 1000,5);
+} 
