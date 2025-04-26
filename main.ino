@@ -28,6 +28,42 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
+//================4states======================================
+enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
+
+//global state default disabled and global start button
+volatile CoolerState g_state = DISABLED;
+volatile bool g_startBtn = false;
+
+//if user presses the button
+void initStartButtonISR() {
+  EIMSK  |= (1<<INT0);    // unmask external interrupt 0
+  EICRA  |= (1<<ISC01);   // trigger on falling edge
+  //INT0 is on digital pin 2—wire button there
+}
+
+ISR(INT0_vect) {
+  g_startBtn = true;
+}
+
+//================4states=====================================
+
+void loop() {
+  //if user pressed start/stop:
+  if (g_startBtn) {
+    g_startBtn = false;
+    //toggle between DISABLED and IDLE
+    if (g_state == DISABLED) {
+      setState(IDLE);
+    } else {
+      setState(DISABLED);
+    }
+  }
+
+  //add per-state logic
+}
+
+
 
 void waterlevel(){
   if(water_level>=100){
