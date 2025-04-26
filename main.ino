@@ -7,6 +7,10 @@
 //● Record the time and date every time the motor is turned on or of. This information
 //should be transmitted to a host computer (over USB)
 
+#include <avr/interrupt.h>
+#include <avr/io.h>
+
+//low level pointers
 volatile unsigned char *myUCSR0A  = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B  = (unsigned char *)0x00C1;
 volatile unsigned char *myUCSR0C  = (unsigned char *)0x00C2;
@@ -15,6 +19,7 @@ volatile unsigned char *myUDR0    = (unsigned char *)0x00C6;
 // GPIO Pointers
 volatile unsigned char *portB     = (unsigned char *) 0x25;
 volatile unsigned char *portDDRB  = (unsigned char *) 0x24;
+
 // Timer Pointers
 volatile unsigned char *myTCCR1A  =(unsigned char *) 0x80;
 volatile unsigned char *myTCCR1B  =(unsigned char *) 0x81;
@@ -35,63 +40,45 @@ enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
 volatile CoolerState g_state = DISABLED;
 volatile bool g_startBtn = false;
 
-//if user presses the button
+//setState() turns on one LED and prints a letter
+void setState(CoolerState s)
+{
+    g_state = s;
+
+    /* LED mux: clear PB1-PB4, then set one bit */
+    *portB &= ~0b00011110; // PB1–PB4 low
+    switch (s) {
+        case DISABLED: *portB |= (1<<PB1); break;  // yellow
+        case IDLE: *portB |= (1<<PB2); break;  // green
+        case RUNNING: *portB |= (1<<PB3); break;  // blue
+        case ERROR: *portB |= (1<<PB4); break;  // red
+    }
+
+    //minimal serial feedback
+    while (!(*myUCSR0A & TBE));
+    *myUDR0 = "DIRE"[s];
+}
+
+//================4states=====================================
+
+//================button=====================================
+
 void initStartButtonISR() {
-  EIMSK  |= (1<<INT0);    // unmask external interrupt 0
-  EICRA  |= (1<<ISC01);   // trigger on falling edge
+  volatile unsigned char *portD = (unsigned char *)0x2B;
+  volatile unsigned char *portDDRD = (unsigned char *)0x2A;
+
+  *portDDRD &= ~(1<<DDD2); //PD2 = input
+  *portD |= (1<<PORTD2); //enable pull-up (idle HIGH)
+  
+  EIMSK |= (1<<INT0); //unmask external interrupt 0
+  EICRA |= (1<<ISC01); //trigger on falling edge
   //INT0 is on digital pin 2—wire button there
 }
 
 ISR(INT0_vect) {
   g_startBtn = true;
 }
-
-//================4states=====================================
-
-void loop() {
-  //if user pressed start/stop:
-  if (g_startBtn) {
-    g_startBtn = false;
-    //toggle between DISABLED and IDLE
-    if (g_state == DISABLED) {
-      setState(IDLE);
-    } else {
-      setState(DISABLED);
-    }
-  }
-
-  //add per-state logic
-}
-
-
-
-void waterlevel(){
-  if(water_level>=100){
-    lcd.setCursor(0, 1);
-    lcd.print("High");
-    noTone(buzzer);
-}
-  else if(water_level>=50){
-    lcd.setCursor(0, 1);
-    lcd.print("Water level is too low");
-    tone(buzzer, 1000,5);
-} 
-
-
-void tempandhumidity(){
-  Serial.println();
-
- int chk = DHT11.read(DHT11PIN);
-
- Serial.print("Humidity (%): ");
- Serial.println((float)DHT11.humidity, 2);
-
-  Serial.print("Temperature  (C): ");
-  Serial.println((float)DHT11.temperature, 2);
-
-  delay(2000);
-
-}
+//================button=====================================
 
 void U0init(int U0baud)
 {
@@ -118,21 +105,7 @@ void U0putchar(unsigned char U0pdata)
   *myUDR0 = U0pdata;
 }
 
-//fan 
-const uint8_t TEMPHHIGH = 80; 
-const uint8_t  TEMPLOW = 75;
-
-void fan_temp(float TempF){
-  static bool fanON
-  if(!fanON && TempF >= TEMPHIGH){
-    
-  }
-  else if(fanON && TempF <= TEMPLOW){
-    
-  }
-  
-}
-
+//==================adc drivers=================================
 void adc_init() //write your code after each commented line and follow the instruction 
 {
   // setup the A register
@@ -179,3 +152,84 @@ unsigned int adc_read(unsigned char adc_channel_num) //work with channel 0
   
   
 }
+//==================adc drivers=================================
+
+//=======================================
+/*
+void waterlevel(){
+  if(water_level>=100){
+    lcd.setCursor(0, 1);
+    lcd.print("High");
+    noTone(buzzer);
+}
+  else if(water_level>=50){
+    lcd.setCursor(0, 1);
+    lcd.print("Water level is too low");
+    tone(buzzer, 1000,5);
+} 
+
+
+void tempandhumidity(){
+  Serial.println();
+
+ int chk = DHT11.read(DHT11PIN);
+
+ Serial.print("Humidity (%): ");
+ Serial.println((float)DHT11.humidity, 2);
+
+  Serial.print("Temperature  (C): ");
+  Serial.println((float)DHT11.temperature, 2);
+
+  delay(2000);
+
+}
+
+//fan 
+const uint8_t TEMPHHIGH = 80; 
+const uint8_t  TEMPLOW = 75;
+
+void fan_temp(float TempF){
+  static bool fanON;
+  if(!fanON && TempF >= TEMPHIGH){
+    
+  }
+  else if(fanON && TempF <= TEMPLOW){
+    
+  }
+  
+}
+*/
+
+//============================================
+
+//=================Arduino====================
+void setup()
+{
+    cli(); //global ints off
+    U0init(9600);
+
+    //LEDs as outputs
+    *portDDRB |= (1<<PB1)|(1<<PB2)|(1<<PB3)|(1<<PB4);
+
+    initStartButtonISR();
+    sei(); //global ints on
+
+    setState(DISABLED);//start in disabled mode
+}
+
+
+void loop() {
+  //if user pressed start/stop:
+  if (g_startBtn) {
+    g_startBtn = false;
+    //toggle between DISABLED and IDLE
+    if (g_state == DISABLED) {
+      setState(IDLE);
+    } else {
+      setState(DISABLED);
+    }
+  }
+
+  //add per-state logic later
+}
+//=================Arduino============================
