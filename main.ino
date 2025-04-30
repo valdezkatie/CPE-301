@@ -9,6 +9,8 @@
 
 #include <avr/interrupt.h>
 #include <avr/io.h>
+#include <LiquidCrystal.h>
+#include <Stepper.h>
 
 //low level pointers
 volatile unsigned char *myUCSR0A  = (unsigned char *)0x00C0;
@@ -33,12 +35,18 @@ volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
+//lcd pin set up
+const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;
+LiquidCrystal LCD(RS, EN, D4, D5, D6, D7);
+
 //================4states======================================
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
 
 //global state default disabled and global start button
 volatile CoolerState g_state = DISABLED;
 volatile bool g_startBtn = false;
+
+
 
 //setState() turns on one LED and prints a letter
 void setState(CoolerState s)
