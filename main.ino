@@ -22,13 +22,13 @@ volatile unsigned char *myUDR0    = (unsigned char *)0x00C6;
 volatile unsigned char *portB     = (unsigned char *) 0x25;
 volatile unsigned char *portDDRB  = (unsigned char *) 0x24;
 
-volatile unsigned char* port_d = (unsigned char*) 0x2B; 
-volatile unsigned char* ddr_d  = (unsigned char*) 0x2A; 
-volatile unsigned char* pin_d  = (unsigned char*) 0x29; 
+volatile unsigned char *port_d = (unsigned char*) 0x2B; 
+volatile unsigned char *ddr_d  = (unsigned char*) 0x2A; 
+volatile unsigned char *pin_d  = (unsigned char*) 0x29; 
 
-volatile unsigned char* port_e = (unsigned char*) 0x2E; 
-volatile unsigned char* ddr_e  = (unsigned char*) 0x2D; 
-volatile unsigned char* pin_e  = (unsigned char*) 0x2C; 
+volatile unsigned char *port_e = (unsigned char*) 0x2E; 
+volatile unsigned char *ddr_e  = (unsigned char*) 0x2D; 
+volatile unsigned char *pin_e  = (unsigned char*) 0x2C; 
 
 // Timer Pointers
 volatile unsigned char *myTCCR1A  =(unsigned char *) 0x80;
