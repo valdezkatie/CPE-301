@@ -166,19 +166,20 @@ unsigned int adc_read(unsigned char adc_channel_num) //work with channel 0
 {
  
   *my_ADMUX &= 0b11100000;
-
-  
   *my_ADCSRB &= 0b11110111;
  
   // set the channel selection bits for channel 0
- 
-
-  
   *my_ADCSRA |= 0x40;
   
-  while((*my_ADCSRA & 0x40) != 0);
-  
-  
+  while((*my_ADCSRA & 0x40) != 0);  
+}
+
+void displayTemp(){
+lcd.clear();
+lcd.setCursor(0,0);
+lcd.print("Temperature: ");
+lcd.setCursor(0,1);
+lcd.print("Humidity: ");
 }
 //==================adc drivers=================================
 
@@ -244,6 +245,10 @@ void setup()
     sei(); //global ints on
 
     setState(DISABLED);//start in disabled mode
+    //lcd initialization
+    lcd.begin(16, 2);
+    lcd.clear();
+    lcd.setCursor(0, 0);
 }
 
 
