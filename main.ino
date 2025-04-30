@@ -44,7 +44,7 @@ volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
 //lcd pin set up
-const int RS = 11, EN = 12, D4 = 2, D5 = 3, D6 = 4, D7 = 5;
+const int RS = 53, EN = 51, D4 = 49, D5 = 47, D6 = 45, D7 = 43;
 LiquidCrystal LCD(RS, EN, D4, D5, D6, D7);
 
 //================4states======================================
