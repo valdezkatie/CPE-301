@@ -46,7 +46,8 @@ volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 //lcd pin set up
 const int RS = 53, EN = 51, D4 = 49, D5 = 47, D6 = 45, D7 = 43;
 LiquidCrystal LCD(RS, EN, D4, D5, D6, D7);
-
+// stepper motor setup
+const int IN1=23, IN2=25, IN3=27, IN4=29;
 //================4states======================================
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
 
