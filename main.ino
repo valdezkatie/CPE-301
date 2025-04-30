@@ -214,7 +214,7 @@ void tempandhumidity(){
 }
 
 //fan 
-//stepper moter you can use arduino
+
 const uint8_t TEMPHHIGH = 80; 
 const uint8_t  TEMPLOW = 75;
 
@@ -245,6 +245,7 @@ void setup()
     sei(); //global ints on
 
     setState(DISABLED);//start in disabled mode
+    
     //lcd initialization
     lcd.begin(16, 2);
     lcd.clear();
