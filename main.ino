@@ -12,6 +12,9 @@
 #include <LiquidCrystal.h>
 #include <Stepper.h>
 
+#define RDA 0x80
+#define TBE 0x20
+
 //low level pointers
 volatile unsigned char *myUCSR0A  = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B  = (unsigned char *)0x00C1;
@@ -48,6 +51,13 @@ const int RS = 53, EN = 51, D4 = 49, D5 = 47, D6 = 45, D7 = 43;
 LiquidCrystal LCD(RS, EN, D4, D5, D6, D7);
 // stepper motor setup
 const int IN1=23, IN2=25, IN3=27, IN4=29;
+
+
+// Temperature setup
+dht DHT;
+#define DHT11_PIN 3
+#define TEMP_THRESHOLD 24
+
 //================4states======================================
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
 
