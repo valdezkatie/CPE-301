@@ -47,6 +47,7 @@ volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
 //lcd pin set up
+//lcd you can use arduino
 const int RS = 53, EN = 51, D4 = 49, D5 = 47, D6 = 45, D7 = 43;
 LiquidCrystal LCD(RS, EN, D4, D5, D6, D7);
 // stepper motor setup
@@ -212,6 +213,7 @@ void tempandhumidity(){
 }
 
 //fan 
+//stepper moter you can use arduino
 const uint8_t TEMPHHIGH = 80; 
 const uint8_t  TEMPLOW = 75;
 
