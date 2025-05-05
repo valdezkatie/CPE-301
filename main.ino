@@ -68,7 +68,7 @@ volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 //global objects
 LiquidCrystal LCD(12,11,5,4,3,2);
 Stepper ventStepper(200, 23,27,25,29);  
-DHT dht(3, DHT11);                 
+DHT dht(45, DHT11);                 
 RTC_DS1307 rtc;
 
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
