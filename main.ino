@@ -22,8 +22,8 @@
 #define LED_IDLE PB3 //D50
 #define LED_RUN PB2 //D51 
 #define LED_ERR PB0 //D53 
-#define BTN_PIN PD3 //D18 INT1
-#define FAN_PIN PC2 //D35 OC1A 
+#define BTN_PIN PD2 //D2 INT0
+#define FAN_PIN PC2 //PC2 D35 
 
 #define VENT_CH 0 //A0 
 #define WATER_CH 1 //A1 
@@ -142,11 +142,11 @@ void setState(CoolerState s){
 void initStartButtonISR() {
     DDRD &= ~(1<<BTN_PIN);
     PORTD |= (1<<BTN_PIN);
-    EICRA |= (1<<ISC11);
-    EIMSK |= (1<<INT1);
+    EICRA |= (1<<ISC01);
+    EIMSK |= (1<<INT0);
 }
 
-ISR(INT1_vect) {
+ISR(INT0_vect) {
   g_btn = true;
 }
 //================button=====================================
