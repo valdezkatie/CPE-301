@@ -121,7 +121,7 @@ void logTime(){
 //setState() turns on one LED and prints a letter
 void setState(CoolerState s){
     g_state=s;
-    *portB &= ~0b00011110;
+    *portB &= ~0b00011111;
     switch(s){
       case DISABLED:*portB|=(1<<LED_DIS);
           break;
