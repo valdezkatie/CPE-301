@@ -19,10 +19,10 @@
 #define RDA 0x80
 #define TBE 0x20
 #define LED_DIS PB1 //D52 
-#define LED_IDLE PB2 //D50 
-#define LED_RUN PB3 //D51 
-#define LED_ERR PB4 //D53 
-#define BTN_PIN PD2 //D2 INT0
+#define LED_IDLE PB3 //D50
+#define LED_RUN PB2 //D51 
+#define LED_ERR PB0 //D53 
+#define BTN_PIN PD3 //D18 INT1
 #define FAN_PIN PC2 //D35 OC1A 
 
 #define VENT_CH 0 //A0 
@@ -142,11 +142,11 @@ void setState(CoolerState s){
 void initStartButtonISR() {
     DDRD &= ~(1<<BTN_PIN);
     PORTD |= (1<<BTN_PIN);
-    EICRA |= (1<<ISC01);
-    EIMSK |= (1<<INT0);
+    EICRA |= (1<<ISC11);
+    EIMSK |= (1<<INT1);
 }
 
-ISR(INT0_vect) {
+ISR(INT1_vect) {
   g_btn = true;
 }
 //================button=====================================
@@ -186,7 +186,7 @@ void setup()
     fanInit();
 
     //LEDs as outputs
-    *portDDRB |= (1<<PB1)|(1<<PB2)|(1<<PB3)|(1<<PB4);
+    *portDDRB |= (1<<PB0)|(1<<PB1)|(1<<PB2)|(1<<PB3);
 
     initStartButtonISR();
     sei(); //global ints on
