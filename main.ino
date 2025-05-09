@@ -27,7 +27,8 @@
 
 #define VENT_CH 0 //A0 
 #define WATER_CH 1 //A1 
-#define WATER_THR 650
+#define WATER_THR 200
+int waterLevel = 0;
 
 #define TEMP_HI 30.0
 #define TEMP_LO 27.0
