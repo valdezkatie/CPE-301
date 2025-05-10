@@ -122,7 +122,8 @@ void U0print(const char* s) {
   U0put('0' + n.minute() / 10);  
   U0put('0' + n.minute() % 10);
   U0put(':');
-  U0put('0' + n.second() / 10);  U0put('0' + n.second() % 10);
+  U0put('0' + n.second() / 10);  
+  U0put('0' + n.second() % 10);
   U0put(']');
  }
 
@@ -244,7 +245,8 @@ void setup()
   }
   float temp = dht.readTemperature();
   switch(g_state){
-   case DISABLED: stopFan(); 
+   case DISABLED: 
+    stopFan(); 
     if(g_next==IDLE){
      displayTempHum();
     }  
@@ -267,12 +269,18 @@ void setup()
      g_next = IDLE;
     }
     break;
-   case ERROR: stopFan(); 
+   case ERROR: 
+    stopFan(); 
     break;
      }
   if(g_state != g_next){
-   U0print("State "); U0put('0'+g_state); U0print(" -> "); U0put('0'+g_next); U0put(' ');
-   logTime(); U0put('\n');
+   U0print("State "); 
+   U0put('0'+g_state); 
+   U0print(" -> "); 
+   U0put('0'+g_next); 
+   U0put(' ');
+   logTime(); 
+   U0put('\n');
    g_state = g_next;
    setLEDs();
   }
