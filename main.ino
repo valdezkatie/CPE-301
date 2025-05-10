@@ -200,7 +200,9 @@ void stopFan() {
   }
 }
  void resetISR() {
-  
+  if (state == 3 && adc_read(WATER_SENSOR_CH) > WATER_THRESHOLD){
+   nextState = 1; 
+  }
  }
 //================vent=====================================
  void controlVent() {
