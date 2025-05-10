@@ -92,7 +92,6 @@ RTC_DS1307 rtc;
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
 volatile CoolerState g_state = DISABLED;
 volatile CoolerState g_next  = DISABLED;
-volatile bool g_btn = false;
 uint16_t waterLevel = 0;
 unsigned long tFast = 0, tSlow = 0;
 
@@ -117,13 +116,13 @@ void U0print(const char* s) {
  void logTime(){
   DateTime n = rtc.now();
   U0put('[');
-  U0put('0' + n.hour() / 10); U0put('0' + n.hour() % 10); 
+  U0put('0' + n.hour()   / 10);  
+  U0put('0' + n.hour()   % 10);
   U0put(':');
-  U0put('0' + n.minute() / 10); 
-  U0put('0' + n.minute() % 10); 
+  U0put('0' + n.minute() / 10);  
+  U0put('0' + n.minute() % 10);
   U0put(':');
-  U0put('0' + n.second() / 10); 
-  U0put('0' + n.second() % 10); 
+  U0put('0' + n.second() / 10);  U0put('0' + n.second() % 10);
   U0put(']');
  }
 
@@ -160,21 +159,12 @@ unsigned int adc_read(unsigned char ch)
     PORTB = (PORTB & ~0x0F) | mask;
  }
 void startFan() {
-  DDRC |= (1 << PC0) | (1<< PC1) | (1<<PC2);
-
-  //PORTE |= (1 << PC2);
-  PORTC |= (1 << PC0);
-  PORTC &= ~(1 << PC1);
-  PORTC |= (1 << PC2);
- }
+ PORTC |= (1<<FAN_EN_BIT)|(1<<FAN_IN1_BIT); 
+ PORTC &= ~(1<<FAN_IN2_BIT); 
+}
 void stopFan() {
-  DDRC |= (1 << PC0) | (1<< PC1) | (1<<PC2);
-
-  //PORTE |= (1 << PC2);
-  PORTC |= (1 << PC0);
-  PORTC &= ~(1 << PC1);
-  PORTC &= ~(1 << PC2);
- }
+ PORTC &= ~(1<<FAN_EN_BIT);
+}
 
 //================LEDandFans==================================
  void displayTempHum() {
@@ -195,15 +185,15 @@ void stopFan() {
 //================buttons=====================================
 
  void startStopISR(){
-  if(g_state == 0){
-   g_next = 1;
-  } else {
-   g_next = 0;
-  }
+    if (g_state == DISABLED){
+     g_next = IDLE; 
+    } else {
+     g_next = DISABLED;
+    }
 }
  void resetISR() {
-  if(g_state == 3 && adc_read(WATER_CH) > WATER_THRESHOLD){
-   g_next = 1;
+  if(g_state == ERROR && adc_read(WATER_CH) > WATER_THRESHOLD){
+   g_next = IDLE;
   }
  }
 //================vent=====================================
@@ -227,7 +217,6 @@ void stopFan() {
 //=================Arduino====================
 void setup()
 {
-    cli();
     U0init(9600);
     adc_init();
     DDRB |= 0x0F;
@@ -240,7 +229,6 @@ void setup()
     pinMode(BTN_VENT_DN, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(BTN_START), startStopISR, RISING);
     attachInterrupt(digitalPinToInterrupt(BTN_RESET), resetISR, RISING);
-    sei();
     setLEDs();
 }
 
