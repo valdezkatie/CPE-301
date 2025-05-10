@@ -13,14 +13,16 @@
 #include <RTClib.h>
 
 //===========LEDS========
-#define LED_DIS PB1 //D53
+#define LED_DIS PB1 //D52
 #define LED_IDLE PB3 //D50
 #define LED_RUN PB2 //D51 
 #define LED_ERR PB0 //D53
 
 //===========Btn=========
 #define BTN_START 18
-#define BTN_RESET 19 
+#define BTN_RESET 19
+#define BTN_VENT_UP 30
+#define BTN_VENT_DN 36 
 
 //========temps=======
 #define TEMP_THRESHOLD 26.0
@@ -134,7 +136,6 @@ unsigned int adc_read(unsigned char ch)
     *my_ADCSRA |= 0x40;
     while(*my_ADCSRA & 0x40);
     return *my_ADC_DATA;
- }
 }
 
 //================LEDandFans==================================
@@ -174,16 +175,16 @@ void stopFan() {
  void displayTempHum() {
   float t = dht.readTemperature();
   float h = dht.readHumidity();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("T: ");
-  lcd.print(t);
-  lcd.print((char)223);
-  lcd.print("C");
-  lcd.setCursor(0, 1);
-  lcd.print("H: ");
-  lcd.print(h);
-  lcd.print("%");
+  LCD.clear();
+  LCD.setCursor(0, 0);
+  LCD.print("T: ");
+  LCD.print(t,1);
+  LCD.print((uint8_t)223);
+  LCD.print("C");
+  LCD.setCursor(0, 1);
+  LCD.print("H: ");
+  LCD.print(h,0);
+  LCD.print("%");
  }
 
 //================buttons=====================================
