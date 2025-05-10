@@ -113,10 +113,11 @@ void U0print(const char* s) {
 }
 
  void logTime(){
-     DateTime n = rtc.now();
-     char buf[10];
-     sprintf(buf,"%02u:%02u:%02u", n.hour(), n.minute(), n.second());
-     U0print(buf);
+    DateTime n = rtc.now();
+    U0put('[');
+    U0put('0' + n.hour()/10);   U0put('0' + n.hour()%10);   U0put(':');
+    U0put('0' + n.minute()/10); U0put('0' + n.minute()%10); U0put(':');
+    U0put('0' + n.second()/10); U0put('0' + n.second()%10); U0put(']');
  }
 
 //==================adc drivers=================================
@@ -139,42 +140,50 @@ unsigned int adc_read(unsigned char ch)
 //================LEDandFans==================================
  void setLEDs() {
      uint8_t mask = 0;
-     if(g_state==DISABLED){
-         mask |= (1<<LED_DIS);
-     } 
-     else if(g_state==IDLE){
-         mask |= (1<<LED_IDLE);
-     }
-     else if(g_state==RUNNING){
-         mask |= (1<<LED_RUN);
-     }
-     else if(g_state==ERROR){
-          mask |= (1<<LED_ERR);
-     }
-     PORTB = (PORTB & ~0x0F) | mask;
+    if(g_state == DISABLED){
+     mask |= (1<<LED_DIS);
+    }
+    else if(g_state == IDLE){
+     mask |= (1<<LED_IDLE);
+    }
+    else if(g_state == RUNNING){
+     mask |= (1<<LED_RUN);
+    }else{
+     mask |= (1<<LED_ERR); 
+    }   
+    PORTB = (PORTB & ~0x0F) | mask;
  }
- inline void startFan() {
-     PORTC |= (1<<FAN_EN_BIT)|(1<<FAN_IN1_BIT);
-     PORTC &= ~(1<<FAN_IN2_BIT);
+void startFan() {
+  DDRC |= (1 << PC0) | (1<< PC1) | (1<<PC2);
+
+  //PORTE |= (1 << PC2);
+  PORTC |= (1 << PC0);
+  PORTC &= ~(1 << PC1);
+  PORTC |= (1 << PC2);
  }
- inline void stopFan() {
-     PORTC &= ~(1<<FAN_EN_BIT);
+void stopFan() {
+  DDRC |= (1 << PC0) | (1<< PC1) | (1<<PC2);
+
+  //PORTE |= (1 << PC2);
+  PORTC |= (1 << PC0);
+  PORTC &= ~(1 << PC1);
+  PORTC &= ~(1 << PC2);
  }
 
 //================LEDandFans==================================
  void displayTempHum() {
-     float t = dht.readTemperature();
-     float h = dht.readHumidity();
-     LCD.clear();
-     LCD.setCursor(0,0); 
-     LCD.print("T: "); 
-     LCD.print(t,1); 
-     LCD.write(223); 
-     LCD.print("C");
-     LCD.setCursor(0,1); 
-     LCD.print("H: "); 
-     LCD.print(h,0); 
-     LCD.print('%');
+  float t = dht.readTemperature();
+  float h = dht.readHumidity();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("T: ");
+  lcd.print(t);
+  lcd.print((char)223);
+  lcd.print("C");
+  lcd.setCursor(0, 1);
+  lcd.print("H: ");
+  lcd.print(h);
+  lcd.print("%");
  }
 
 //================buttons=====================================
@@ -189,14 +198,20 @@ unsigned int adc_read(unsigned char ch)
  }
 //================vent=====================================
  void controlVent() {
-     if(!digitalRead(BTN_VENT_UP)) {
-         ventStepper.step(+100);
-         U0print("Vent UP "); logTime(); U0put('\n');
-     }
-     if(!digitalRead(BTN_VENT_DN)) {
-         ventStepper.step(-100);
-         U0print("Vent DOWN "); logTime(); U0put('\n');
-     }
+  if(!digitalRead(BTN_VENT_UP)){
+   ventStepper.step(+100);
+   U0print("Vent UP ");
+   logTime();  
+   U0put('\n');
+   delay(150);
+    }
+    if(!digitalRead(BTN_VENT_DN)){
+     ventStepper.step(-100);
+     U0print("Vent DOWN "); 
+     logTime();  
+     U0put('\n');
+     delay(150);
+    }
  }
 
 //=================Arduino====================
