@@ -115,14 +115,16 @@ void U0print(const char* s) {
 }
 
  void logTime(){
-  DateTime now = myrtc.now();
-  U0putChar('[');
-  U0putChar('0' + (now.hour() / 10)); U0putChar('0' + (now.hour() % 10));
-  U0putChar(':');
-  U0putChar('0' + (now.minute() / 10)); U0putChar('0' + (now.minute() % 10));
-  U0putChar(':');
-  U0putChar('0' + (now.second() / 10)); U0putChar('0' + (now.second() % 10));
-  U0putChar(']');
+  DateTime n = rtc.now();
+  U0put('[');
+  U0put('0' + n.hour() / 10); U0put('0' + n.hour() % 10); 
+  U0put(':');
+  U0put('0' + n.minute() / 10); 
+  U0put('0' + n.minute() % 10); 
+  U0put(':');
+  U0put('0' + n.second() / 10); 
+  U0put('0' + n.second() % 10); 
+  U0put(']');
  }
 
 //==================adc drivers=================================
@@ -193,15 +195,15 @@ void stopFan() {
 //================buttons=====================================
 
  void startStopISR(){
-  if (state == 0){
-   nextState = 1;
+  if(g_state == 0){
+   g_next = 1;
   } else {
-   nextState = 1;
+   g_next = 0;
   }
 }
  void resetISR() {
-  if (state == 3 && adc_read(WATER_SENSOR_CH) > WATER_THRESHOLD){
-   nextState = 1; 
+  if(g_state == 3 && adc_read(WATER_CH) > WATER_THRESHOLD){
+   g_next = 1;
   }
  }
 //================vent=====================================
