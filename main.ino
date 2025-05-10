@@ -25,6 +25,7 @@
 //========temps=======
 #define TEMP_THRESHOLD 26.0
 #define WATER_THRESHOLD 300.0
+int waterLevel = 0; 
 
 //=======TIMING=======
 #define FAST_MS 500UL
