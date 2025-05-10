@@ -115,11 +115,14 @@ void U0print(const char* s) {
 }
 
  void logTime(){
-    DateTime n = rtc.now();
-    U0put('[');
-    U0put('0' + n.hour()/10);   U0put('0' + n.hour()%10);   U0put(':');
-    U0put('0' + n.minute()/10); U0put('0' + n.minute()%10); U0put(':');
-    U0put('0' + n.second()/10); U0put('0' + n.second()%10); U0put(']');
+  DateTime now = myrtc.now();
+  U0putChar('[');
+  U0putChar('0' + (now.hour() / 10)); U0putChar('0' + (now.hour() % 10));
+  U0putChar(':');
+  U0putChar('0' + (now.minute() / 10)); U0putChar('0' + (now.minute() % 10));
+  U0putChar(':');
+  U0putChar('0' + (now.second() / 10)); U0putChar('0' + (now.second() % 10));
+  U0putChar(']');
  }
 
 //==================adc drivers=================================
@@ -189,13 +192,15 @@ void stopFan() {
 
 //================buttons=====================================
 
- void startStopISR() { 
-     g_btn = true; 
- }
+ void startStopISR(){
+  if (state == 0){
+   nextState = 1;
+  } else {
+   nextState = 1;
+  }
+}
  void resetISR() {
-     if(g_state==ERROR && adc_read(WATER_CH) > WATER_THRESHOLD){
-         g_next = IDLE;
-     }       
+  
  }
 //================vent=====================================
  void controlVent() {
@@ -236,53 +241,48 @@ void setup()
 }
 
  void loop() {
-     if(g_btn){ 
-         g_btn = false; 
-         g_next = (g_state==DISABLED) ? IDLE : DISABLED; 
+  if(millis()-tFast >= 500){
+  tFast = millis();
+   waterLevel = adc_read(WATER_CH);
+   controlVent();
+  }
+  if(millis()-tSlow >= 60000){
+   tSlow = millis();
+   displayTempHum();
+  }
+  float temp = dht.readTemperature();
+  switch(g_state){
+   case DISABLED: stopFan(); 
+    if(g_next==IDLE){
+     displayTempHum();
+    }  
+    break;
+   case IDLE:
+    stopFan();
+    if(waterLevel <= WATER_THRESHOLD){
+     g_next = ERROR;
+    }
+    else if(temp > TEMP_THRESHOLD) {
+     g_next = RUNNING;
+    }
+    break;
+   case RUNNING:
+    startFan();
+    if(waterLevel <= WATER_THRESHOLD) {
+     g_next = ERROR;
+    }
+    else if(temp <= TEMP_THRESHOLD) {
+     g_next = IDLE;
+    }
+    break;
+   case ERROR: stopFan(); 
+    break;
      }
- 
-     if(millis()-tFast >= 500){
-         tFast = millis();
-         waterLevel = adc_read(WATER_CH);
-         controlVent();
-     }
-     if(millis()-tSlow >= 60000){
-         tSlow = millis();
-         displayTempHum();
-     }
- 
-     float temp = dht.readTemperature();
-     switch(g_state){
-         case DISABLED: stopFan(); 
-            if(g_next==IDLE) displayTempHum(); 
-            break;
-         case IDLE:
-             stopFan();
-             if(waterLevel <= WATER_THRESHOLD){
-                g_next = ERROR;
-             }
-             else if(temp > TEMP_THRESHOLD) {
-                g_next = RUNNING;
-             }
-             break;
-         case RUNNING:
-             startFan();
-             if(waterLevel <= WATER_THRESHOLD) {
-                 g_next = ERROR;
-             }
-             else if(temp <= TEMP_THRESHOLD) {
-                 g_next = IDLE;
-             }
-             break;
-         case ERROR: stopFan(); 
-             break;
-     }
- 
-     if(g_state != g_next){
-         U0print("State "); U0put('0'+g_state); U0print(" -> "); U0put('0'+g_next); U0put(' ');
-         logTime(); U0put('\n');
-         g_state = g_next;
-         setLEDs();
-     }
-     delay(50);
+  if(g_state != g_next){
+   U0print("State "); U0put('0'+g_state); U0print(" -> "); U0put('0'+g_next); U0put(' ');
+   logTime(); U0put('\n');
+   g_state = g_next;
+   setLEDs();
+  }
+  delay(50);
  }
