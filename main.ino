@@ -7,40 +7,45 @@
 //● Record the time and date every time the motor is turned on or of. This information
 //should be transmitted to a host computer (over USB)
 
-#include <Wire.h> 
-#include <Adafruit_Sensor.h> 
-#include <avr/interrupt.h>
-#include <avr/io.h>
 #include <LiquidCrystal.h>
 #include <Stepper.h>
 #include <DHT.h>
 #include <RTClib.h>
 
-#define RDA 0x80
-#define TBE 0x20
-#define LED_DIS PB1 //D52 
+//===========LEDS========
+#define LED_DIS PB1 //D53
 #define LED_IDLE PB3 //D50
 #define LED_RUN PB2 //D51 
-#define LED_ERR PB0 //D53 
-#define BTN_PIN PD3 //D18 INT1
-#define FAN_PIN PC2 //PC2 D35 
+#define LED_ERR PB0 //D53
 
-#define VENT_CH 0 //A0 
-#define WATER_CH 1 //A1 
-#define WATER_THR 200
-int waterLevel = 0;
+//===========Btn=========
+#define BTN_START 18
+#define BTN_RESET 19 
 
-#define TEMP_HI 30.0
-#define TEMP_LO 27.0
+//========temps=======
+#define TEMP_THRESHOLD 26.0
+#define WATER_THRESHOLD 300.0
+
+//=======TIMING=======
 #define FAST_MS 500UL
 #define SLOW_MS 60000UL
 
-//low level pointers
+//low level registers
+#define RDA 0x80
+#define TBE 0x20
 volatile unsigned char *myUCSR0A  = (unsigned char *)0x00C0;
 volatile unsigned char *myUCSR0B  = (unsigned char *)0x00C1;
 volatile unsigned char *myUCSR0C  = (unsigned char *)0x00C2;
 volatile unsigned int  *myUBRR0   = (unsigned int *)0x00C4;
 volatile unsigned char *myUDR0    = (unsigned char *)0x00C6;
+
+//this is from water sensor
+volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
+volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
+volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
+volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
+//
+
 // GPIO Pointers
 volatile unsigned char *portB     = (unsigned char *) 0x25;
 volatile unsigned char *portDDRB  = (unsigned char *) 0x24;
@@ -60,11 +65,6 @@ volatile unsigned char *myTCCR1C  =(unsigned char *) 0x82;
 volatile unsigned int  *myICR1   =(unsigned int *)0x86;
 volatile unsigned int  *myOCR1A  =(unsigned int *)0x88;
 
-//this is from water sensor
-volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
-volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
-volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
-volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
 
 //global objects
 LiquidCrystal LCD(12,11,5,4,3,2);
