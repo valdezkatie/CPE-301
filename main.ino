@@ -183,13 +183,13 @@ void stopFan() {
   LCD.clear();
   LCD.setCursor(0, 0);
   LCD.print("T: ");
-  LCD.print(t,1);
+  LCD.print(t, 1);
   LCD.print((uint8_t)223);
   LCD.print("C");
   LCD.setCursor(0, 1);
   LCD.print("H: ");
-  LCD.print(h,0);
-  LCD.print("%");
+  LCD.print(h, 0);
+  LCD.print('%');
  }
 
 //================buttons=====================================
