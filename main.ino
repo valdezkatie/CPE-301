@@ -25,11 +25,26 @@
 //========temps=======
 #define TEMP_THRESHOLD 26.0
 #define WATER_THRESHOLD 300.0
-int waterLevel = 0; 
 
-//=======TIMING=======
-#define FAST_MS 500UL
-#define SLOW_MS 60000UL
+//=============fan================
+#define FAN_EN_BIT  PC2   //D35  EN
+#define FAN_IN1_BIT PC0   //D37  IN1
+#define FAN_IN2_BIT PC1   //D36  IN2
+
+//===========stepper============
+#define STEPPER_IN1 23
+#define STEPPER_IN2 25
+#define STEPPER_IN3 27
+#define STEPPER_IN4 29
+Stepper ventStepper(2038, STEPPER_IN1, STEPPER_IN3,STEPPER_IN2, STEPPER_IN4);  
+
+//ADC
+ #define WATER_CH 1 //PF1 / A1
+ #define VENT_POT_CH 0 //PF0 / A0
+
+///=======TIMING=======
+//#define FAST_MS 500UL
+//#define SLOW_MS 60000UL
 
 //low level registers
 #define RDA 0x80
@@ -45,7 +60,6 @@ volatile unsigned char* my_ADMUX = (unsigned char*) 0x7C;
 volatile unsigned char* my_ADCSRB = (unsigned char*) 0x7B;
 volatile unsigned char* my_ADCSRA = (unsigned char*) 0x7A;
 volatile unsigned int* my_ADC_DATA = (unsigned int*) 0x78;
-//
 
 // GPIO Pointers
 volatile unsigned char *portB     = (unsigned char *) 0x25;
@@ -69,188 +83,190 @@ volatile unsigned int  *myOCR1A  =(unsigned int *)0x88;
 
 //global objects
 LiquidCrystal LCD(12,11,5,4,3,2);
-Stepper ventStepper(200, 23,27,25,29);  
 DHT dht(45, DHT11);                 
 RTC_DS1307 rtc;
 
+//============states==========
 enum CoolerState : uint8_t { DISABLED, IDLE, RUNNING, ERROR };
-
-//global state default disabled and global start button
 volatile CoolerState g_state = DISABLED;
+volatile CoolerState g_next  = DISABLED;
 volatile bool g_btn = false;
+uint16_t waterLevel = 0;
+unsigned long tFast = 0, tSlow = 0;
 
+//===============UART=============
 void U0init(int baud)
 {
-    unsigned int tbaud=(F_CPU/16/baud)-1;
-    *myUBRR0  = tbaud;
+    uint16_t t = (16000000UL/16/baud)-1;
+    *myUBRR0  = t;
     *myUCSR0A = 0x20;
     *myUCSR0B = 0x18;
     *myUCSR0C = 0x06;
 }
-void U0putchar(unsigned char c){
-    while(!(*myUCSR0A&TBE)); 
-    *myUDR0=c;
-}
-void U0printString(const char* s){
-    while(*s){
-        U0putchar(*s++);
-    }
-}
-void U0printNumber(int n){
-    char buf[12]; 
-    itoa(n,buf,10); 
-    U0printString(buf);
+void U0put(char c) { 
+    while(!(*myUCSR0A & TBE)); 
+    *myUDR0 = c; 
 }
 
-//================timestamps==================================
-void logTime(){
-    DateTime now = rtc.now();
-    U0putchar('[');
-    U0printNumber(now.hour());  
-    U0putchar(':');
-    if(now.minute()<10){
-        U0putchar('0');
-    }
-    U0printNumber(now.minute());
-    U0putchar(':');
-    if(now.second()<10){
-        U0putchar('0');
-    }
-    U0printNumber(now.second());
-    U0putchar(']');
+void U0print(const char* s) { 
+    while(*s) U0put(*s++); 
 }
 
-//setState() turns on one LED and prints a letter
-void setState(CoolerState s){
-    g_state=s;
-    *portB &= ~0b00011111;
-    switch(s){
-      case DISABLED:*portB|=(1<<LED_DIS);
-          break;
-      case IDLE: *portB|=(1<<LED_IDLE);
-          break;
-      case RUNNING: *portB|=(1<<LED_RUN);
-          break;
-      case ERROR: *portB|=(1<<LED_ERR);
-          break;
-    }
-    logTime(); 
-    U0putchar(' '); 
-    U0putchar("DIRE"[s]); 
-    U0putchar('\n');
-}
-//================button=====================================
-
-void initStartButtonISR() {
-    DDRD &= ~(1<<BTN_PIN);
-    PORTD |= (1<<BTN_PIN);
-    EICRA |= (1<<ISC11);
-    EIMSK |= (1<<INT1);
-}
-
-ISR(INT0_vect) {
-  g_btn = true;
-}
-//================button=====================================
+ void logTime(){
+     DateTime n = rtc.now();
+     char buf[10];
+     sprintf(buf,"%02u:%02u:%02u", n.hour(), n.minute(), n.second());
+     U0print(buf);
+ }
 
 //==================adc drivers=================================
-void adc_init() //write your code after each commented line and follow the instruction 
+void adc_init()
 {
-    *my_ADMUX = 0b01000000; //AVCC ref, right‑adj, ch0
-    *my_ADCSRA = 0b10000111; //enable, presc 128
-    *my_ADCSRB &= 0b11110111; //MUX5=0 
-
+    *my_ADCSRA = 0b10000111;
+    *my_ADMUX  = 0b01000000;
 }
 
-unsigned int adc_read(unsigned char ch) //work with channel 0
+unsigned int adc_read(unsigned char ch) 
 {
-    *my_ADMUX  = (*my_ADMUX & 0b11111000) | (ch & 0x07);
-    *my_ADCSRA |= 0b01000000;      
-    while(*my_ADCSRA & 0b01000000);
+    *my_ADMUX = (*my_ADMUX & 0xF8) | (ch & 0x07);
+    (ch>7) ? (*my_ADCSRB |= 0x08) : (*my_ADCSRB &= ~0x08);
+    *my_ADCSRA |= 0x40;
+    while(*my_ADCSRA & 0x40);
     return *my_ADC_DATA;
-}
-void fanInit(){
-    DDRC |= (1<<FAN_PIN);
-    *myTCCR1A = 0b10000001;
-    *myTCCR1B = 0b00011001;
-    *myICR1 = 40000;
-    *myOCR1A = 0;
+ }
 }
 
-//==================adc drivers=================================
+//================LEDandFans==================================
+ void setLEDs() {
+     uint8_t mask = 0;
+     if(g_state==DISABLED){
+         mask |= (1<<LED_DIS);
+     } 
+     else if(g_state==IDLE){
+         mask |= (1<<LED_IDLE);
+     }
+     else if(g_state==RUNNING){
+         mask |= (1<<LED_RUN);
+     }
+     else if(g_state==ERROR){
+          mask |= (1<<LED_ERR);
+     }
+     PORTB = (PORTB & ~0x0F) | mask;
+ }
+ inline void startFan() {
+     PORTC |= (1<<FAN_EN_BIT)|(1<<FAN_IN1_BIT);
+     PORTC &= ~(1<<FAN_IN2_BIT);
+ }
+ inline void stopFan() {
+     PORTC &= ~(1<<FAN_EN_BIT);
+ }
+
+//================LEDandFans==================================
+ void displayTempHum() {
+     float t = dht.readTemperature();
+     float h = dht.readHumidity();
+     LCD.clear();
+     LCD.setCursor(0,0); 
+     LCD.print("T: "); 
+     LCD.print(t,1); 
+     LCD.write(223); 
+     LCD.print("C");
+     LCD.setCursor(0,1); 
+     LCD.print("H: "); 
+     LCD.print(h,0); 
+     LCD.print('%');
+ }
+
+//================buttons=====================================
+
+ void startStopISR() { 
+     g_btn = true; 
+ }
+ void resetISR() {
+     if(g_state==ERROR && adc_read(WATER_CH) > WATER_THRESHOLD){
+         g_next = IDLE;
+     }       
+ }
+//================vent=====================================
+ void controlVent() {
+     if(!digitalRead(BTN_VENT_UP)) {
+         ventStepper.step(+100);
+         U0print("Vent UP "); logTime(); U0put('\n');
+     }
+     if(!digitalRead(BTN_VENT_DN)) {
+         ventStepper.step(-100);
+         U0print("Vent DOWN "); logTime(); U0put('\n');
+     }
+ }
 
 //=================Arduino====================
 void setup()
 {
-    cli(); //global ints off
+    cli();
     U0init(9600);
     adc_init();
-    fanInit();
-
-    //LEDs as outputs
-    *portDDRB |= (1<<PB0)|(1<<PB1)|(1<<PB2)|(1<<PB3);
-
-    initStartButtonISR();
-    sei(); //global ints on
-    
-    rtc.begin();
-    dht.begin();
+    DDRB |= 0x0F;
+    DDRC |= (1<<FAN_EN_BIT)|(1<<FAN_IN1_BIT)|(1<<FAN_IN2_BIT);
     LCD.begin(16,2);
+    dht.begin();
+    rtc.begin();
     ventStepper.setSpeed(10);
-    setState(DISABLED);
-
+    pinMode(BTN_VENT_UP, INPUT_PULLUP);
+    pinMode(BTN_VENT_DN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(BTN_START), startStopISR, RISING);
+    attachInterrupt(digitalPinToInterrupt(BTN_RESET), resetISR, RISING);
+    sei();
+    setLEDs();
 }
 
-
-unsigned long t_fast=0, t_slow=0;
-void loop(){
-
-    if(g_btn){
-        g_btn=false; 
-        setState(g_state==DISABLED?IDLE:DISABLED); 
-    }
-
-    if(g_state!=DISABLED && millis()-t_fast>=FAST_MS){
-        t_fast=millis();
-        unsigned int w=adc_read(WATER_CH);
-        unsigned char pct=w*100UL/1023UL;
-        LCD.setCursor(0,1); 
-        LCD.print("W:"); 
-        LCD.print(pct); 
-        LCD.print("%   ");
-        if(w<WATER_THR){
-            setState(ERROR);
-        }
-
-        unsigned int v=adc_read(VENT_CH);
-        int steps=map((long)v,0,1023,-100,100);
-        ventStepper.step(steps);
-    }
-
-    if(g_state!=DISABLED && millis()-t_slow>=SLOW_MS){
-        t_slow=millis();
-        float T=dht.readTemperature();
-        float H=dht.readHumidity();
-        LCD.setCursor(0,0);
-        LCD.print("T:"); 
-        LCD.print(T,1); 
-        LCD.print((char)223); 
-        LCD.print("C ");
-        LCD.print("H:"); 
-        LCD.print(H,0); 
-        LCD.print("% ");
-
-        if(g_state!=ERROR){
-            if(g_state==IDLE && T>=TEMP_HI){
-                *myOCR1A=*myICR1*0.6;
-                setState(RUNNING); 
-                U0printString(" FAN ON\n");
-            }
-            else if(g_state==RUNNING && T<=TEMP_LO){
-                *myOCR1A=0;
-                setState(IDLE);    
-                U0printString(" FAN OFF\n");
-            }
-        }
-    }
-}
+ void loop() {
+     if(g_btn){ 
+         g_btn = false; 
+         g_next = (g_state==DISABLED) ? IDLE : DISABLED; 
+     }
+ 
+     if(millis()-tFast >= 500){
+         tFast = millis();
+         waterLevel = adc_read(WATER_CH);
+         controlVent();
+     }
+     if(millis()-tSlow >= 60000){
+         tSlow = millis();
+         displayTempHum();
+     }
+ 
+     float temp = dht.readTemperature();
+     switch(g_state){
+         case DISABLED: stopFan(); 
+            if(g_next==IDLE) displayTempHum(); 
+            break;
+         case IDLE:
+             stopFan();
+             if(waterLevel <= WATER_THRESHOLD){
+                g_next = ERROR;
+             }
+             else if(temp > TEMP_THRESHOLD) {
+                g_next = RUNNING;
+             }
+             break;
+         case RUNNING:
+             startFan();
+             if(waterLevel <= WATER_THRESHOLD) {
+                 g_next = ERROR;
+             }
+             else if(temp <= TEMP_THRESHOLD) {
+                 g_next = IDLE;
+             }
+             break;
+         case ERROR: stopFan(); 
+             break;
+     }
+ 
+     if(g_state != g_next){
+         U0print("State "); U0put('0'+g_state); U0print(" -> "); U0put('0'+g_next); U0put(' ');
+         logTime(); U0put('\n');
+         g_state = g_next;
+         setLEDs();
+     }
+     delay(50);
+ }
